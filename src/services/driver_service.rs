@@ -4,23 +4,30 @@ use crate::models::driver_model::{
 use chrono::Utc;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
+use tracing::{debug, error};
 
 pub async fn create_driver_service(
     pool: &PgPool,
     payload: CreateDriverRequest,
 ) -> Result<DriverResponse, String> {
+    debug!(email = %payload.email, "Starting driver creation");
+    
     // Validate input
     if payload.email.is_empty()
         || payload.first_name.is_empty()
         || payload.username.is_empty()
         || payload.password.is_empty()
     {
+        error!("Email, username, first name, and password are required");
         return Err("Email, username, first name, and password are required".to_string());
     }
 
     // Hash password (you'll need to implement or use a crate like `bcrypt`)
     let password_hash =
-        hash_password(&payload.password).map_err(|e| format!("Password hashing failed: {}", e))?;
+        hash_password(&payload.password).map_err(|e| {
+            error!(error = %e, "Password hashing failed");
+            format!("Password hashing failed: {}", e)
+        })?;
 
     // Create driver object
     let driver = Driver {
@@ -66,20 +73,27 @@ pub async fn create_driver_service(
 }
 
 pub async fn list_drivers_service(pool: &PgPool) -> Result<Vec<DriverResponse>, String> {
+    debug!("Fetching all drivers from database");
     let rows = sqlx::query(
         "SELECT id, email, username, first_name, last_name, phone, license_number, vehicle_type, rating, is_available, created_at, updated_at \
         FROM drivers ORDER BY created_at DESC",
     )
     .fetch_all(pool)
     .await
-    .map_err(map_db_err)?;
+    .map_err(|e| {
+        error!(error = %e, "Database fetch failed");
+        map_db_err(e)
+    })?;
 
     Ok(rows.into_iter().map(row_to_driver_response).collect())
 }
 
 pub async fn get_driver_service(pool: &PgPool, id: String) -> Result<DriverResponse, String> {
+    debug!(driver_id = %id, "Fetching driver from database");
+    
     // Validate input
     if id.is_empty() {
+        error!("Driver ID is required");
         return Err("Driver ID is required".to_string());
     }
 
@@ -87,11 +101,17 @@ pub async fn get_driver_service(pool: &PgPool, id: String) -> Result<DriverRespo
         "SELECT id, email, username, first_name, last_name, phone, license_number, vehicle_type, rating, is_available, created_at, updated_at \
         FROM drivers WHERE id = $1",
     )
-    .bind(id)
+    .bind(&id)
     .fetch_optional(pool)
     .await
-    .map_err(map_db_err)?
-    .ok_or_else(|| "Driver not found".to_string())?;
+    .map_err(|e| {
+        error!(error = %e, "Database fetch failed");
+        map_db_err(e)
+    })?
+    .ok_or_else(|| {
+        error!(driver_id = %id, "Driver not found");
+        "Driver not found".to_string()
+    })?;
 
     Ok(row_to_driver_response(row))
 }
@@ -101,8 +121,11 @@ pub async fn update_driver_service(
     id: String,
     payload: UpdateDriverRequest,
 ) -> Result<DriverResponse, String> {
+    debug!(driver_id = %id, "Starting driver update");
+    
     // Validate input
     if id.is_empty() {
+        error!("Driver ID is required");
         return Err("Driver ID is required".to_string());
     }
 
@@ -143,8 +166,11 @@ pub async fn patch_driver_service(
 }
 
 pub async fn delete_driver_service(pool: &PgPool, id: String) -> Result<String, String> {
+    debug!(driver_id = %id, "Starting driver deletion");
+    
     // Validate input
     if id.is_empty() {
+        error!("Driver ID is required");
         return Err("Driver ID is required".to_string());
     }
 
@@ -152,12 +178,17 @@ pub async fn delete_driver_service(pool: &PgPool, id: String) -> Result<String, 
         .bind(&id)
         .execute(pool)
         .await
-        .map_err(map_db_err)?;
+        .map_err(|e| {
+            error!(error = %e, "Database delete failed");
+            map_db_err(e)
+        })?;
 
     if result.rows_affected() == 0 {
+        error!(driver_id = %id, "Driver not found");
         return Err("Driver not found".to_string());
     }
-
+    
+    debug!(driver_id = %id, "Driver deleted from database");
     Ok(format!("Driver {} deleted successfully", id))
 }
 
