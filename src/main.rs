@@ -34,7 +34,7 @@ async fn main() {
         .route("/", get(|| async { "Hello from Axum! 🦀" }))
         .nest("/users", routes::user_route::user_routes())
         .nest("/drivers", routes::driver_route::driver_routes())
-        .nest("/paympaymentsents", routes::payment_route::payment_routes())
+        .nest("/payments", routes::payment_route::payment_routes())
         .layer(Extension(db_pool));
     
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
