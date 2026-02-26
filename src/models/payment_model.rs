@@ -43,11 +43,11 @@ pub struct VerifyResponseData {
     pub gateway_response: String,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct WebhookEvent {
-    pub event: String,
-    pub data: serde_json::Value,
-}
+// #[derive(Debug, Deserialize)]
+// pub struct WebhookEvent {
+//     pub event: String,
+//     pub data: serde_json::Value,
+// }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PaymentResponse {
