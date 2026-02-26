@@ -41,6 +41,7 @@ pub struct UserResponse {
     pub id: String,
     pub email: String,
     pub username: String,
+    pub password_hash: String,
     pub first_name: String,
     pub last_name: String,
     pub phone: Option<String>,

@@ -1,3 +1,4 @@
+use crate::auth::password_utils::hash_password;
 use crate::models::transport_company_model::{
     CreateDriverRequest, CreateTransportCompanyRequest, CreateVehicleRequest, Driver,
     DriverResponse, TransportCompany, TransportCompanyResponse, UpdateDriverRequest,
@@ -431,10 +432,6 @@ pub async fn delete_driver_service(pool: &PgPool, id: String) -> Result<(), Stri
 // Helper Functions
 //=====================================================================================
 
-fn hash_password(password: &str) -> Result<String, String> {
-    // Placeholder - implement with bcrypt or argon2
-    Ok(format!("hashed_{}", password))
-}
 
 fn row_to_transport_company_response(row: sqlx::postgres::PgRow) -> TransportCompanyResponse {
     TransportCompanyResponse {
