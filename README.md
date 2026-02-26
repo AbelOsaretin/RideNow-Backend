@@ -1,6 +1,6 @@
 # RideNow-Backend 🚗
 
-A modern ride-sharing backend service built with Rust, featuring robust user and driver management, payment processing
+A modern, scalable ride-sharing backend service built with Rust, featuring robust authentication, user and driver management, payment processing, and transport company administration.
 
 ## 📋 Table of Contents
 
@@ -13,26 +13,42 @@ A modern ride-sharing backend service built with Rust, featuring robust user and
 - [Running the Application](#running-the-application)
 - [API Endpoints](#api-endpoints)
 - [Project Structure](#project-structure)
+- [Security Features](#security-features)
 - [Contributing](#contributing)
+- [License](#license)
+- [Author](#author)
+- [Acknowledgments](#acknowledgments)
 
 ## ✨ Features
 
-- **User Management**: Complete CRUD operations for users
-- **Driver Management**: Complete CRUD operations for users
-- **Payment Processing**: Secure payment handling for users and drivers
-- **RESTful API**: Clean, well-structured API endpoints
-- **Database Migrations**: Version-controlled schema management
-- **Logging**: Comprehensive logging with tracing
+- **Authentication & Authorization**: Secure JWT-based authentication with Argon2 password hashing
+- **User Management**: Complete CRUD operations for riders/passengers
+- **Driver Management**: Complete CRUD operations for drivers with vehicle assignments
+- **Transport Company Management**: Manage transport companies, their vehicles, and driver assignments
+- **Vehicle Management**: Track and manage fleet vehicles linked to transport companies
+- **Payment Processing**: Secure payment handling for users and drivers with webhook support
+- **RESTful API**: Clean, well-structured API endpoints following REST best practices
+- **Database Migrations**: Version-controlled schema management with SQLx
+- **Comprehensive Logging**: Request tracing and application monitoring with Tracing
 
 ## 🛠 Tech Stack
 
-- **Language**: Rust
+- **Language**: Rust (Edition 2024)
 - **Web Framework**: [Axum](https://github.com/tokio-rs/axum) 0.8.8
 - **Database**: PostgreSQL with [SQLx](https://github.com/launchbadge/sqlx) 0.8.6
 - **Async Runtime**: [Tokio](https://tokio.rs/) 1.49.0
-- **Serialization**: Serde 1.0.228
-- **Logging**: Tracing & Tracing-Subscriber
-- **UUID Generation**: UUID v4
+- **Authentication**:
+  - [JSON Web Tokens](https://github.com/Keats/jsonwebtoken) (JWT) 9.3
+  - [Argon2](https://github.com/RustCrypto/password-hashes) 0.5 for password hashing
+- **Serialization**: Serde 1.0.228 with JSON support
+- **HTTP Client**: Reqwest 0.12 (for payment processing)
+- **Cryptography**:
+  - HMAC 0.12.1
+  - SHA2 0.10.8
+  - Hex 0.4.3
+- **Logging & Tracing**: Tracing 0.1.44 & Tracing-Subscriber 0.3.22
+- **Date/Time**: Chrono 0.4
+- **UUID Generation**: UUID 1.21.0 (v4)
 - **Environment Variables**: dotenvy 0.15.7
 
 ## 📦 Prerequisites
@@ -71,12 +87,16 @@ cargo build
 ```env
 DATABASE_URL=postgres://username:password@localhost/ridenow_db
 PORT=3000
+JWT_SECRET=your_secure_random_secret_key_here
 ```
 
-2. **Adjust the configuration** based on your PostgreSQL setup:
+2. **Adjust the configuration** based on your setup:
    - Replace `username` with your PostgreSQL username
    - Replace `password` with your PostgreSQL password
    - Replace `ridenow_db` with your desired database name
+   - Replace `your_secure_random_secret_key_here` with a strong, random secret for JWT signing
+
+**Security Note**: Never commit your `.env` file to version control. Ensure it's listed in `.gitignore`.
 
 ## 🗄️ Database Setup
 
@@ -100,10 +120,13 @@ sqlx migrate run
 
 The migrations will create the following tables:
 
-- `users` - Rider information and authentication
-- `drivers` - Driver profiles, vehicles, and availability
-- `user_payments` - User payment records
+- `users` - User/rider information and authentication
+- `drivers` - Driver profiles and information
+- `user_payments` - User payment records and transaction history
 - `driver_payments` - Driver payment and earnings records
+- `transport_companies` - Transport company profiles and details
+- `vehicles` - Vehicle information linked to transport companies
+- `transport_company_drivers` - Junction table linking drivers to transport companies
 
 ## 🏃 Running the Application
 
@@ -128,6 +151,10 @@ The server will start on `http://127.0.0.1:3000` by default.
 
 - `GET /` - Health check endpoint
 
+### Authentication
+
+- `POST /login` - User/driver authentication and JWT token generation
+
 ### Users
 
 - `GET /users` - List all users
@@ -137,60 +164,97 @@ The server will start on `http://127.0.0.1:3000` by default.
 - `PATCH /users/{id}` - Update a user (partial update)
 - `DELETE /users/{id}` - Delete a user
 
-### Drivers
+### Transport Companies
 
-- `GET /drivers` - List all drivers
-- `POST /drivers` - Create a new driver
-- `GET /drivers/{id}` - Get a specific driver
-- `PUT /drivers/{id}` - Update a driver (full update)
-- `PATCH /drivers/{id}` - Update a driver (partial update)
-- `DELETE /drivers/{id}` - Delete a driver
+- `GET /transport_companies` - List all transport companies
+- `POST /transport_companies` - Create a new transport company
+- `GET /transport_companies/{id}` - Get a specific transport company
+- `PUT /transport_companies/{id}` - Update a transport company (full update)
+- `PATCH /transport_companies/{id}` - Update a transport company (partial update)
+- `DELETE /transport_companies/{id}` - Delete a transport company
+
+### Vehicles
+
+- `GET /transport_companies/vehicles` - List all vehicles
+- `POST /transport_companies/vehicles` - Add a new vehicle
+- `GET /transport_companies/vehicles/{id}` - Get a specific vehicle
+- `PUT /transport_companies/vehicles/{id}` - Update a vehicle (full update)
+- `PATCH /transport_companies/vehicles/{id}` - Update a vehicle (partial update)
+- `DELETE /transport_companies/vehicles/{id}` - Delete a vehicle
+
+### Company-Driver Assignments
+
+- `GET /transport_companies/drivers` - List all company-driver
+- `POST /transport_companies/drivers` - Assign a driver to a company
+- `GET /transport_companies/drivers/{id}` - Get a specific assignment
+- `PUT /transport_companies/drivers/{id}` - Update driver (full update)
+- `PATCH /transport_companies/drivers/{id}` - Update driver (partial update)
+- `DELETE /transport_companies/drivers/{id}` - Remove a driver
 
 ### Payments
 
-- `GET /payments/health` - Payments endpoint health check
+- `GET /payments/health` - Payments service health check
 - `GET /payments` - List all payments
-- `POST /payments/initialize` - Process a new payment
-- `POST /payments/initialize/redirect` - Redirects straight to payment page.
-- `POST /payments/webhook` - To receive payment webhook request.
-- `GET /payments/user/{user_id}` - Get payment details of a single user.
-- `GET /payments/driver/{driver_id}` - Get payment details of a single driver.
+- `POST /payments/initialize` - Initialize a new payment transaction
+- `POST /payments/initialize/redirect` - Initialize payment with redirect to payment gateway
+- `POST /payments/webhook` - Webhook endpoint for payment notifications
+- `GET /payments/user/{user_id}` - Get payment history for a specific user
+- `GET /payments/driver/{driver_id}` - Get payment history for a specific driver
 
 ## 📁 Project Structure
 
 ```
 RideNow-Backend/
 ├── src/
-│   ├── main.rs                    # Application entry point
-│   ├── handlers/                  # Request handlers
+│   ├── main.rs                          # Application entry point
+│   ├── auth/                            # Authentication utilities
 │   │   ├── mod.rs
-│   │   ├── user_handlers.rs
-│   │   ├── driver_handlers.rs
-│   │   └── payment_handlers.rs
-│   ├── models/                    # Data models
+│   │   └── password_utils.rs            # Password hashing with Argon2
+│   ├── handlers/                        # Request handlers
 │   │   ├── mod.rs
-│   │   ├── user_model.rs
-│   │   ├── driver_model.rs
-│   │   └── payment_model.rs
-│   ├── routes/                    # Route definitions
+│   │   ├── login_handler.rs             # Authentication handlers
+│   │   ├── user_handlers.rs             # User CRUD handlers
+│   │   ├── payment_handlers.rs          # Payment processing handlers
+│   │   └── transport_company_handlers.rs # Transport company handlers
+│   ├── models/                          # Data models & DTOs
 │   │   ├── mod.rs
-│   │   ├── user_route.rs
-│   │   ├── driver_route.rs
-│   │   └── payment_route.rs
-│   └── services/                  # Business logic & database operations
+│   │   ├── login_model.rs               # Login request/response models
+│   │   ├── user_model.rs                # User data structures
+│   │   ├── payment_model.rs             # Payment data structures
+│   │   └── transport_company_model.rs   # Transport company models
+│   ├── routes/                          # Route definitions
+│   │   ├── mod.rs
+│   │   ├── login_route.rs               # Authentication routes
+│   │   ├── user_route.rs                # User routes
+│   │   ├── payment_route.rs             # Payment routes
+│   │   └── transport_company_route.rs   # Transport company routes
+│   └── services/                        # Business logic layer
 │       ├── mod.rs
-│       ├── database_service.rs
-│       ├── user_service.rs
-│       ├── driver_service.rs
-│       └── payment_service.rs
-├── migrations/                    # Database migrations
+│       ├── database_service.rs          # Database connection pooling
+│       ├── login_service.rs             # Authentication service
+│       ├── user_service.rs              # User business logic
+│       ├── payment_service.rs           # Payment processing logic
+│       └── transport_company_service.rs # Transport company logic
+├── migrations/                          # SQLx database migrations
 │   ├── 202602240001_create_users.sql
 │   ├── 202602240002_create_drivers.sql
 │   ├── 202602250001_create_user_payments.sql
-│   └── 202602250002_create_driver_payments.sql
-├── Cargo.toml                     # Rust dependencies
-└── README.md
+│   ├── 202602250002_create_driver_payments.sql
+│   ├── 202602260001_create_transport_companies.sql
+│   ├── 202602260002_create_vehicles.sql
+│   └── 202602260003_create_transport_company_drivers.sql
+├── Cargo.toml                           # Project dependencies
+├── .env                                 # Environment configuration (not in repo)
+└── README.md                            # This file
 ```
+
+## 🔒 Security Features
+
+- **Password Hashing**: Passwords are hashed using Argon2, a memory-hard password hashing algorithm resistant to GPU cracking attacks
+- **JWT Authentication**: Secure token-based authentication for API endpoint protection
+- **HMAC Verification**: Webhook signature verification for payment processing
+- **Parameterized Queries**: SQLx compile-time checked queries prevent SQL injection
+- **Environment Variables**: Sensitive credentials stored securely outside the codebase
 
 ## 🤝 Contributing
 
