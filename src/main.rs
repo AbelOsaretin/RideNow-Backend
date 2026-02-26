@@ -34,7 +34,6 @@ async fn main() {
         .nest("/login", routes::login_route::login_route())
         .nest("/protected", routes::protected_route::protected_routes())
         .nest("/users", routes::user_route::user_routes())
-        .nest("/drivers", routes::driver_route::driver_routes())
         .nest(
             "/transport-companies",
             routes::transport_company_route::transport_company_routes(),
