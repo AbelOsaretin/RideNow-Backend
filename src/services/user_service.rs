@@ -4,6 +4,8 @@ use sqlx::{PgPool, Row};
 use tracing::{debug, error};
 use uuid::Uuid;
 
+use crate::auth::password_utils::hash_password;
+
 pub async fn create_user_service(
     pool: &PgPool,
     payload: CreateUserRequest,
@@ -64,7 +66,7 @@ pub async fn create_user_service(
 pub async fn list_users_service(pool: &PgPool) -> Result<Vec<UserResponse>, String> {
     debug!("Fetching all users from database");
     let rows = sqlx::query(
-        "SELECT id, email, username, first_name, last_name, phone, profile_picture, is_active, created_at \
+        "SELECT * \
         FROM users ORDER BY created_at DESC",
     )
     .fetch_all(pool)
@@ -181,16 +183,13 @@ pub async fn delete_user_service(pool: &PgPool, id: String) -> Result<String, St
     Ok(format!("User {} deleted successfully", id))
 }
 
-fn hash_password(password: &str) -> Result<String, String> {
-    // Placeholder - implement with bcrypt or argon2
-    Ok(format!("hashed_{}", password))
-}
 
 fn row_to_user_response(row: sqlx::postgres::PgRow) -> UserResponse {
     UserResponse {
         id: row.get("id"),
         email: row.get("email"),
         username: row.get("username"),
+        password_hash: row.get("password_hash"),
         first_name: row.get("first_name"),
         last_name: row.get("last_name"),
         phone: row.get("phone"),

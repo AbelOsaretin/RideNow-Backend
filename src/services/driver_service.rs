@@ -1,17 +1,18 @@
+use crate::auth::password_utils::hash_password;
 use crate::models::driver_model::{
     CreateDriverRequest, Driver, DriverResponse, UpdateDriverRequest,
 };
 use chrono::Utc;
 use sqlx::{PgPool, Row};
-use uuid::Uuid;
 use tracing::{debug, error};
+use uuid::Uuid;
 
 pub async fn create_driver_service(
     pool: &PgPool,
     payload: CreateDriverRequest,
 ) -> Result<DriverResponse, String> {
     debug!(email = %payload.email, "Starting driver creation");
-    
+
     // Validate input
     if payload.email.is_empty()
         || payload.first_name.is_empty()
@@ -23,11 +24,10 @@ pub async fn create_driver_service(
     }
 
     // Hash password (you'll need to implement or use a crate like `bcrypt`)
-    let password_hash =
-        hash_password(&payload.password).map_err(|e| {
-            error!(error = %e, "Password hashing failed");
-            format!("Password hashing failed: {}", e)
-        })?;
+    let password_hash = hash_password(&payload.password).map_err(|e| {
+        error!(error = %e, "Password hashing failed");
+        format!("Password hashing failed: {}", e)
+    })?;
 
     // Create driver object
     let driver = Driver {
@@ -90,7 +90,7 @@ pub async fn list_drivers_service(pool: &PgPool) -> Result<Vec<DriverResponse>, 
 
 pub async fn get_driver_service(pool: &PgPool, id: String) -> Result<DriverResponse, String> {
     debug!(driver_id = %id, "Fetching driver from database");
-    
+
     // Validate input
     if id.is_empty() {
         error!("Driver ID is required");
@@ -122,7 +122,7 @@ pub async fn update_driver_service(
     payload: UpdateDriverRequest,
 ) -> Result<DriverResponse, String> {
     debug!(driver_id = %id, "Starting driver update");
-    
+
     // Validate input
     if id.is_empty() {
         error!("Driver ID is required");
@@ -167,7 +167,7 @@ pub async fn patch_driver_service(
 
 pub async fn delete_driver_service(pool: &PgPool, id: String) -> Result<String, String> {
     debug!(driver_id = %id, "Starting driver deletion");
-    
+
     // Validate input
     if id.is_empty() {
         error!("Driver ID is required");
@@ -187,15 +187,12 @@ pub async fn delete_driver_service(pool: &PgPool, id: String) -> Result<String, 
         error!(driver_id = %id, "Driver not found");
         return Err("Driver not found".to_string());
     }
-    
+
     debug!(driver_id = %id, "Driver deleted from database");
     Ok(format!("Driver {} deleted successfully", id))
 }
 
-fn hash_password(password: &str) -> Result<String, String> {
-    // Placeholder - implement with bcrypt or argon2
-    Ok(format!("hashed_{}", password))
-}
+
 
 fn row_to_driver_response(row: sqlx::postgres::PgRow) -> DriverResponse {
     DriverResponse {
