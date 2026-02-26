@@ -1,8 +1,7 @@
 use axum::{Extension, Router, routing::get};
-use tracing::info;
-use tracing_subscriber;
-
 use services::database_service::init_db_pool;
+use tracing::info;
+mod auth;
 mod handlers;
 mod models;
 mod routes;
@@ -22,9 +21,9 @@ async fn main() {
     let db_pool = init_db_pool()
         .await
         .expect("Failed to initialize database pool");
-    
+
     info!("Database pool initialized successfully");
-    
+
     let port = std::env::var("PORT")
         .unwrap_or_else(|_| "3000".to_string())
         .parse::<u16>()
@@ -32,16 +31,20 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(|| async { "Hello from Axum! 🦀" }))
+        .nest("/login", routes::login_route::login_route())
         .nest("/users", routes::user_route::user_routes())
         .nest("/drivers", routes::driver_route::driver_routes())
-        .nest("/transport-companies", routes::transport_company_route::transport_company_routes())
+        .nest(
+            "/transport-companies",
+            routes::transport_company_route::transport_company_routes(),
+        )
         .nest("/payments", routes::payment_route::payment_routes())
         .layer(Extension(db_pool));
-    
+
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
         .await
         .unwrap();
-    
+
     info!("Listening on http://127.0.0.1:{}", port);
     axum::serve(listener, app).await.unwrap();
 }
