@@ -12,4 +12,5 @@ pub struct LoginResponse {
     pub user_id: String,
     pub email: String,
     pub username: String,
+    pub role: String,
 }
