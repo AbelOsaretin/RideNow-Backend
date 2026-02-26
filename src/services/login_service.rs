@@ -1,4 +1,6 @@
+use crate::auth::password_utils::create_token;
 use crate::auth::password_utils::verify_password;
+use crate::auth::password_utils::verify_token;
 use crate::models::login_model::{LoginRequest, LoginResponse};
 use sqlx::{PgPool, Row};
 
@@ -9,11 +11,12 @@ pub async fn login_service(pool: &PgPool, payload: LoginRequest) -> Result<Login
     }
 
     // Fetch user by username
-    let row = sqlx::query("SELECT id, username, password_hash FROM users WHERE username = $1")
-        .bind(&payload.username)
-        .fetch_one(pool)
-        .await
-        .map_err(|_| "Invalid username or password".to_string())?;
+    let row =
+        sqlx::query("SELECT id, username, password_hash, role FROM users WHERE username = $1")
+            .bind(&payload.username)
+            .fetch_one(pool)
+            .await
+            .map_err(|_| "Invalid username or password".to_string())?;
 
     let new_row: sqlx::postgres::PgRow = row;
 
@@ -26,19 +29,30 @@ pub async fn login_service(pool: &PgPool, payload: LoginRequest) -> Result<Login
     let password_hash: String = new_row
         .try_get::<String, _>("password_hash")
         .map_err(|_| "Invalid username or password".to_string())?;
-
+    let role: String = new_row
+        .try_get::<String, _>("role")
+        .map_err(|_| "Invalid username or password".to_string())?;
     // Verify password
     if !verify_password(&payload.password, &password_hash) {
         return Err("Invalid username or password".to_string());
     }
 
     // Generate token (placeholder - implement JWT or similar)
-    let token = format!("token_for_user_{}", user_id);
+    let token = create_token(&user_id, &role).map_err(|e| {
+        eprintln!("Failed to create token: {}", e);
+        "Failed to create token".to_string()
+    })?;
 
     Ok(LoginResponse {
         token,
         user_id,
         email: username.clone(),
         username,
+        role,
     })
+}
+
+pub fn login_verify_token(token: &str) -> Result<String, String> {
+    let claims = verify_token(token)?;
+    Ok(claims.sub)
 }

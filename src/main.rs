@@ -32,6 +32,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { "Hello from Axum! 🦀" }))
         .nest("/login", routes::login_route::login_route())
+        .nest("/protected", routes::protected_route::protected_routes())
         .nest("/users", routes::user_route::user_routes())
         .nest("/drivers", routes::driver_route::driver_routes())
         .nest(
