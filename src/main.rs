@@ -34,6 +34,7 @@ async fn main() {
         .route("/", get(|| async { "Hello from Axum! 🦀" }))
         .nest("/users", routes::user_route::user_routes())
         .nest("/drivers", routes::driver_route::driver_routes())
+        .nest("/transport-companies", routes::transport_company_route::transport_company_routes())
         .nest("/payments", routes::payment_route::payment_routes())
         .layer(Extension(db_pool));
     
