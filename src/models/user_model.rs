@@ -2,11 +2,17 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Role {
+    User,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: String,
     pub email: String,
     pub username: String,
     pub password_hash: String,
+    pub role: Role,
     pub first_name: String,
     pub last_name: String,
     pub phone: Option<String>,
@@ -24,6 +30,7 @@ pub struct CreateUserRequest {
     pub first_name: String,
     pub last_name: String,
     pub phone: Option<String>,
+    pub role: Role,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

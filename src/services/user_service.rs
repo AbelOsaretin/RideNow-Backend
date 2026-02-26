@@ -30,6 +30,7 @@ pub async fn create_user_service(
         email: payload.email,
         username: payload.username,
         password_hash,
+        role: crate::models::user_model::Role::User,
         first_name: payload.first_name,
         last_name: payload.last_name,
         phone: payload.phone,
@@ -41,14 +42,15 @@ pub async fn create_user_service(
 
     let row = sqlx::query(
         "INSERT INTO users \
-        (id, email, username, password_hash, first_name, last_name, phone, profile_picture, is_active, created_at, updated_at) \
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) \
+        (id, email, username, password_hash, role, first_name, last_name, phone, profile_picture, is_active, created_at, updated_at) \
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) \
         RETURNING id, email, username, first_name, last_name, phone, profile_picture, is_active, created_at",
     )
     .bind(&user.id)
     .bind(&user.email)
     .bind(&user.username)
     .bind(&user.password_hash)
+    .bind(format!("{:?}", user.role))
     .bind(&user.first_name)
     .bind(&user.last_name)
     .bind(&user.phone)
@@ -182,7 +184,6 @@ pub async fn delete_user_service(pool: &PgPool, id: String) -> Result<String, St
     debug!(user_id = %id, "User deleted from database");
     Ok(format!("User {} deleted successfully", id))
 }
-
 
 fn row_to_user_response(row: sqlx::postgres::PgRow) -> UserResponse {
     UserResponse {
