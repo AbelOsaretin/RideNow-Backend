@@ -5,6 +5,8 @@
 # Environment
 .env
 .env.local
-.env.*.local
+.env.*.
+
+.vscode
 
 
